@@ -27,6 +27,14 @@ const GmlRendererScript = preload("res://addons/gml/src/html_renderer/GmlRendere
 
 @export var auto_reload_in_editor: bool = true
 
+@export_group("Debug")
+## When enabled, generated nodes appear in the Scene dock for inspection.
+@export var show_nodes_in_editor: bool = false:
+	set(value):
+		show_nodes_in_editor = value
+		if Engine.is_editor_hint():
+			_queue_rebuild()
+
 @export_group("Tag Defaults")
 @export var h1_font_size: int = 32
 @export var h2_font_size: int = 24
@@ -182,11 +190,13 @@ func _rebuild() -> void:
 
 			add_child(centering_wrapper)
 			centering_wrapper.add_child(target_control)
+			_set_owner_recursive(centering_wrapper)
 
 			# Set up percentage sizing that updates with GmlView resize
 			_setup_root_percent_sizing(target_control, width_percent, height_percent)
 		else:
 			add_child(target_control)
+			_set_owner_recursive(target_control)
 			# Make the root fill the GmlView
 			if target_control is Control:
 				# Use anchors and offsets to properly fill parent
@@ -278,6 +288,22 @@ func _show_placeholder(message: String) -> void:
 	label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(label)
+	_set_owner_recursive(label)
+
+
+## Set owner on a node and all its children recursively.
+## This makes dynamically created nodes visible in the editor's Scene dock.
+func _set_owner_recursive(node: Node) -> void:
+	if not Engine.is_editor_hint() or not show_nodes_in_editor:
+		return
+
+	var scene_root = get_tree().edited_scene_root if get_tree() else null
+	if scene_root == null:
+		return
+
+	node.owner = scene_root
+	for child in node.get_children():
+		_set_owner_recursive(child)
 
 
 func _load_file(path: String) -> String:
