@@ -208,6 +208,7 @@ static func apply_pseudo_style_to_stylebox(style_box: StyleBoxFlat, pseudo_style
 
 
 ## Parse CSS alignment value to Godot BoxContainer alignment.
+## Note: space-between/around/evenly are handled separately via spacer controls.
 static func parse_box_alignment(value: String) -> int:
 	match value:
 		"flex-start", "start":
@@ -216,6 +217,10 @@ static func parse_box_alignment(value: String) -> int:
 			return BoxContainer.ALIGNMENT_CENTER
 		"flex-end", "end":
 			return BoxContainer.ALIGNMENT_END
+		"space-between", "space-around", "space-evenly":
+			# These are handled by GmlContainerElements._apply_space_distribution()
+			# Return BEGIN as a fallback (will be overridden by spacers)
+			return BoxContainer.ALIGNMENT_BEGIN
 		_:
 			return BoxContainer.ALIGNMENT_BEGIN
 

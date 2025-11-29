@@ -183,10 +183,10 @@ wrapper.visible = true
 | `display` | `flex`, `block`, `none` | Layout mode |
 | `flex-direction` | `row`, `column` | Flex direction |
 | `align-items` | `flex-start`, `center`, `flex-end`, `stretch` | Cross-axis alignment |
-| `justify-content` | `flex-start`, `center`, `flex-end` | Main-axis alignment |
-| `gap` | `Npx` | Spacing between children |
-| `flex-grow` | `N` | Flex grow factor |
-| `flex-shrink` | `N` | Flex shrink factor |
+| `justify-content` | `flex-start`, `center`, `flex-end`, `space-between`, `space-around`, `space-evenly` | Main-axis alignment |
+| `gap` | `Npx` | Spacing between children (ignored with space-* justify) |
+| `flex-grow` | `N` | Flex grow factor (axis-aware) |
+| `flex-shrink` | `0`, `N` | Flex shrink factor (0 = prevent shrinking) |
 
 ### Dimensions
 

@@ -305,16 +305,31 @@ func _apply_dimensions(control: Control, node) -> void:
 			, CONNECT_ONE_SHOT)
 		, CONNECT_ONE_SHOT)
 
-	# Apply flex-grow
+	# Apply flex-grow (axis-aware based on parent's flex-direction)
 	if style.has("flex-grow"):
 		var grow: float = style["flex-grow"]
 		if grow > 0:
-			control.size_flags_horizontal |= Control.SIZE_EXPAND
+			var parent = control.get_parent()
+			var is_row = parent.get_meta("is_row_layout", false) if parent else false
+			if is_row:
+				control.size_flags_horizontal |= Control.SIZE_EXPAND
+			else:
+				control.size_flags_vertical |= Control.SIZE_EXPAND
 			control.size_flags_stretch_ratio = grow
 
-	# Apply flex-shrink
+	# Apply flex-shrink (axis-aware based on parent's flex-direction)
 	if style.has("flex-shrink"):
-		control.set_meta("flex_shrink", style["flex-shrink"])
+		var shrink: float = style["flex-shrink"]
+		var parent = control.get_parent()
+		var is_row = parent.get_meta("is_row_layout", false) if parent else false
+
+		if shrink == 0:
+			# Prevent shrinking by using SIZE_SHRINK_BEGIN (don't expand, don't shrink)
+			if is_row:
+				control.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			else:
+				control.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		# shrink > 0 is default behavior (allow container to shrink children)
 
 	# For 100% dimensions, use size flags
 	if width_percent >= 1.0 and height_percent >= 1.0:
