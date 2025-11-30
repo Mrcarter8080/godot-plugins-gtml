@@ -9,6 +9,7 @@ extends RefCounted
 var _gml_view = null  # GmlView reference
 var _styles: Dictionary = {}
 var _defaults: Dictionary = {}
+var _transition_manager: GmlTransitionManager = null
 
 
 ## Build a Control tree from the DOM root.
@@ -16,6 +17,7 @@ func build(root, styles: Dictionary, gml_view) -> Control:
 	_gml_view = gml_view
 	_styles = styles
 	_defaults = gml_view.get_tag_defaults()
+	_transition_manager = GmlTransitionManager.new()
 
 	return _build_node(root)
 
@@ -29,6 +31,7 @@ func _build_context() -> Dictionary:
 		"build_node": _build_node,
 		"get_style": _get_node_style,
 		"wrap_with_margin_padding": _wrap_with_margin_padding,
+		"transition_manager": _transition_manager,
 	}
 
 
@@ -129,6 +132,9 @@ func _build_node(node) -> Control:
 		# Apply styles to the WRAPPER control (for visibility, dimensions, etc.)
 		_apply_node_styles(control, node)
 		_apply_dimensions(control, node)
+		# Set up hover transitions if defined (for non-button elements)
+		if not (control is Button):
+			_setup_hover_transitions(control, node)
 
 	return control
 
@@ -389,6 +395,80 @@ func _apply_dimensions(control: Control, node) -> void:
 	# Apply cursor style
 	if style.has("cursor"):
 		control.mouse_default_cursor_shape = _parse_cursor(style["cursor"])
+
+
+## Set up hover and focus transitions for a control.
+func _setup_hover_transitions(control: Control, node) -> void:
+	var style = _get_node_style(node)
+	var transitions: Array = style.get("transition", [])
+	if transitions.is_empty():
+		return
+
+	if _transition_manager == null:
+		return
+
+	var hover_style: Dictionary = style.get("_hover", {})
+	var focus_style: Dictionary = style.get("_focus", {})
+
+	# If neither hover nor focus styles are defined, nothing to do
+	if hover_style.is_empty() and focus_style.is_empty():
+		return
+
+	# Build complete style dictionaries
+	var base_style := style.duplicate()
+	base_style.erase("_hover")
+	base_style.erase("_active")
+	base_style.erase("_focus")
+	base_style.erase("_disabled")
+
+	var hover_complete := base_style.duplicate()
+	for key in hover_style:
+		hover_complete[key] = hover_style[key]
+
+	var focus_complete := base_style.duplicate()
+	for key in focus_style:
+		focus_complete[key] = focus_style[key]
+
+	# Store stylebox properties for transition manager
+	var stylebox_props := {}
+	if style.has("border-radius"):
+		stylebox_props["corner_radius"] = style["border-radius"]
+	if style.has("border-width"):
+		stylebox_props["border_width"] = style["border-width"]
+	if style.has("border-color"):
+		stylebox_props["border_color"] = style["border-color"]
+	control.set_meta("_stylebox_props", stylebox_props)
+
+	var transition_manager = _transition_manager
+
+	# Track state for proper transition handling
+	var state := {"is_hovered": false, "is_focused": false}
+
+	# Hover transitions
+	if not hover_style.is_empty():
+		control.mouse_entered.connect(func():
+			state.is_hovered = true
+			var from_style = focus_complete if state.is_focused else base_style
+			transition_manager.transition_style(control, from_style, hover_complete, transitions)
+		)
+		control.mouse_exited.connect(func():
+			state.is_hovered = false
+			var to_style = focus_complete if state.is_focused else base_style
+			transition_manager.transition_style(control, hover_complete, to_style, transitions)
+		)
+
+	# Focus transitions (mainly for input elements)
+	if not focus_style.is_empty():
+		control.focus_entered.connect(func():
+			state.is_focused = true
+			if not state.is_hovered:
+				transition_manager.transition_style(control, base_style, focus_complete, transitions)
+		)
+		control.focus_exited.connect(func():
+			state.is_focused = false
+			if not state.is_hovered:
+				transition_manager.transition_style(control, focus_complete, base_style, transitions)
+		)
 
 
 ## Parse CSS cursor value to Godot CursorShape.

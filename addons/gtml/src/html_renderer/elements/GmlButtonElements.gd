@@ -82,8 +82,9 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 					view.button_clicked.emit(method_name)
 			)
 
-	# Apply button-specific styles (padding handled by StyleBox content margins)
-	_apply_button_styles(button, style, defaults, false)
+	# Try to set up transitions first, fall back to regular styles
+	if not _setup_button_transitions(button, style, defaults, ctx, false):
+		_apply_button_styles(button, style, defaults, false)
 
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -117,7 +118,9 @@ static func _build_simple_button(node, ctx: Dictionary, style: Dictionary, defau
 					view.button_clicked.emit(method_name)
 			)
 
-	_apply_button_styles(button, style, defaults)
+	# Try to set up transitions first, fall back to regular styles
+	if not _setup_button_transitions(button, style, defaults, ctx):
+		_apply_button_styles(button, style, defaults)
 
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -126,6 +129,181 @@ static func _build_simple_button(node, ctx: Dictionary, style: Dictionary, defau
 	var decorated = _apply_text_decoration(button, style)
 	var wrapped = _wrap_with_button_margin(decorated, style)
 	return {"control": wrapped, "inner": button}
+
+
+## Set up transitions for a button.
+## Returns true if transitions are being used, false otherwise.
+static func _setup_button_transitions(button: Button, style: Dictionary, defaults: Dictionary, ctx: Dictionary, skip_padding: bool = false) -> bool:
+	var transitions: Array = style.get("transition", [])
+	if transitions.is_empty():
+		return false
+
+	var transition_manager: GmlTransitionManager = ctx.get("transition_manager")
+	if transition_manager == null:
+		return false
+
+	# Get pseudo-class styles
+	var hover_style: Dictionary = style.get("_hover", {})
+	var active_style: Dictionary = style.get("_active", {})
+	var focus_style: Dictionary = style.get("_focus", {})
+
+	# If no pseudo-class styles defined, don't use transitions
+	if hover_style.is_empty() and active_style.is_empty() and focus_style.is_empty():
+		return false
+
+	# Create base StyleBox and apply it
+	var base_stylebox := StyleBoxFlat.new()
+
+	if style.has("background-color"):
+		base_stylebox.bg_color = style["background-color"]
+	else:
+		base_stylebox.bg_color = Color(0.2, 0.2, 0.2, 1.0)
+
+	# Padding
+	if not skip_padding:
+		var base_padding: int = style.get("padding", 8)
+		base_stylebox.content_margin_top = style.get("padding-top", base_padding)
+		base_stylebox.content_margin_right = style.get("padding-right", base_padding)
+		base_stylebox.content_margin_bottom = style.get("padding-bottom", base_padding)
+		base_stylebox.content_margin_left = style.get("padding-left", base_padding)
+
+	GmlStyles.apply_border_to_stylebox(base_stylebox, style)
+
+	# Apply base style to all states initially (we'll animate changes)
+	button.add_theme_stylebox_override("normal", base_stylebox)
+	button.add_theme_stylebox_override("hover", base_stylebox.duplicate())
+	button.add_theme_stylebox_override("pressed", base_stylebox.duplicate())
+	button.add_theme_stylebox_override("focus", base_stylebox.duplicate())
+
+	# Text color
+	if style.has("color"):
+		button.add_theme_color_override("font_color", style["color"])
+		button.add_theme_color_override("font_hover_color", style["color"])
+		button.add_theme_color_override("font_pressed_color", style["color"])
+		button.add_theme_color_override("font_focus_color", style["color"])
+
+	# Store stylebox properties for transition manager
+	var stylebox_props := {}
+	if style.has("border-radius"):
+		stylebox_props["corner_radius"] = style["border-radius"]
+	if style.has("border-width"):
+		stylebox_props["border_width"] = style["border-width"]
+	if style.has("border-color"):
+		stylebox_props["border_color"] = style["border-color"]
+	button.set_meta("_stylebox_props", stylebox_props)
+
+	# Build complete style dictionaries for transitions
+	var base_style_complete := style.duplicate()
+	base_style_complete.erase("_hover")
+	base_style_complete.erase("_active")
+	base_style_complete.erase("_focus")
+	base_style_complete.erase("_disabled")
+
+	# Merge base with pseudo-class for complete target styles
+	var hover_complete := base_style_complete.duplicate()
+	for key in hover_style:
+		hover_complete[key] = hover_style[key]
+
+	var active_complete := base_style_complete.duplicate()
+	for key in active_style:
+		active_complete[key] = active_style[key]
+
+	var focus_complete := base_style_complete.duplicate()
+	for key in focus_style:
+		focus_complete[key] = focus_style[key]
+
+	# Track button state
+	var state := {"current": "base", "is_pressed": false, "is_focused": false}
+
+	# Hover transitions
+	button.mouse_entered.connect(func():
+		if not state.is_pressed:
+			var from_style = base_style_complete
+			transition_manager.transition_style(button, from_style, hover_complete, transitions)
+			state.current = "hover"
+	)
+	button.mouse_exited.connect(func():
+		if not state.is_pressed:
+			var to_style = focus_complete if state.is_focused else base_style_complete
+			transition_manager.transition_style(button, hover_complete, to_style, transitions)
+			state.current = "focus" if state.is_focused else "base"
+	)
+
+	# Pressed/active transitions
+	button.button_down.connect(func():
+		state.is_pressed = true
+		var from_style = hover_complete if button.is_hovered() else base_style_complete
+		transition_manager.transition_style(button, from_style, active_complete, transitions)
+		state.current = "active"
+	)
+	button.button_up.connect(func():
+		state.is_pressed = false
+		var to_style = hover_complete if button.is_hovered() else base_style_complete
+		transition_manager.transition_style(button, active_complete, to_style, transitions)
+		state.current = "hover" if button.is_hovered() else "base"
+	)
+
+	# Focus transitions
+	button.focus_entered.connect(func():
+		state.is_focused = true
+		if not state.is_pressed and not button.is_hovered() and not focus_style.is_empty():
+			transition_manager.transition_style(button, base_style_complete, focus_complete, transitions)
+			state.current = "focus"
+	)
+	button.focus_exited.connect(func():
+		state.is_focused = false
+		if not state.is_pressed and not button.is_hovered() and not focus_style.is_empty():
+			transition_manager.transition_style(button, focus_complete, base_style_complete, transitions)
+			state.current = "base"
+	)
+
+	# Apply remaining non-transition styles
+	_apply_button_text_styles(button, style, defaults)
+
+	return true
+
+
+## Apply text-related styles to a button (font, transform, etc.)
+static func _apply_button_text_styles(button: Button, style: Dictionary, defaults: Dictionary) -> void:
+	# Font family
+	if style.has("font-family"):
+		var font_name: String = style["font-family"]
+		var fonts_dict: Dictionary = defaults.get("fonts", {})
+		if fonts_dict.has(font_name):
+			var font = fonts_dict[font_name]
+			if font is Font:
+				button.add_theme_font_override("font", font)
+
+	# Font size
+	if style.has("font-size"):
+		var font_size: int = style["font-size"]
+		button.add_theme_font_size_override("font_size", font_size)
+
+	# Font weight
+	if style.has("font-weight"):
+		var weight: int = style["font-weight"]
+		if weight >= 600:
+			var outline_size: int
+			if weight >= 900:
+				outline_size = 7
+			elif weight >= 800:
+				outline_size = 4
+			else:
+				outline_size = 1
+			button.add_theme_constant_override("outline_size", outline_size)
+			var font_color: Color = style.get("color", Color.WHITE)
+			button.add_theme_color_override("font_outline_color", font_color)
+
+	# Text transform
+	if style.has("text-transform") and not button.text.is_empty():
+		var transform: String = style["text-transform"]
+		match transform:
+			"uppercase":
+				button.text = button.text.to_upper()
+			"lowercase":
+				button.text = button.text.to_lower()
+			"capitalize":
+				button.text = _capitalize_words(button.text)
 
 
 ## Apply styles directly to a button's StyleBox.

@@ -17,7 +17,8 @@ extends RefCounted
 ##   border-top-left-radius, border-top-right-radius,
 ##   border-bottom-left-radius, border-bottom-right-radius, overflow, visibility,
 ##   background, background-image (linear-gradient, radial-gradient),
-##   text-decoration, line-height, text-transform, text-indent, word-spacing, white-space, text-overflow
+##   text-decoration, line-height, text-transform, text-indent, word-spacing, white-space, text-overflow,
+##   transition, transition-property, transition-duration, transition-timing-function, transition-delay
 
 var _pos: int = 0
 var _css: String = ""
@@ -57,6 +58,11 @@ const BORDER_PROPS = [
 
 const FLOAT_PROPS = [
 	"opacity", "flex-grow", "flex-shrink", "order"
+]
+
+const TRANSITION_PROPS = [
+	"transition", "transition-property", "transition-duration",
+	"transition-timing-function", "transition-delay"
 ]
 
 
@@ -314,6 +320,18 @@ func _convert_property_value(prop_name: String, value: String):
 	# Outline
 	if prop_name == "outline":
 		return GmlBorderValues.parse_outline(value)
+
+	# Transition properties
+	if prop_name == "transition":
+		return GmlTransitionValues.parse_transition(value)
+	if prop_name == "transition-property":
+		return GmlTransitionValues.parse_transition_property(value)
+	if prop_name == "transition-duration":
+		return GmlTransitionValues.parse_transition_duration(value)
+	if prop_name == "transition-timing-function":
+		return GmlTransitionValues.parse_transition_timing_function(value)
+	if prop_name == "transition-delay":
+		return GmlTransitionValues.parse_transition_delay(value)
 
 	# Unknown property - return as string
 	return value
