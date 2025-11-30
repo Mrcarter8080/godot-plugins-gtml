@@ -207,7 +207,7 @@ static func apply_word_spacing(label: Label, spacing: int) -> void:
 ## Apply text-decoration to a label using custom draw.
 ## Returns a Control that wraps the label with decoration drawing.
 static func apply_text_decoration(label: Label, decoration: Dictionary, color: Color) -> Control:
-	var has_decoration := decoration.get("underline", false) or decoration.get("line_through", false) or decoration.get("overline", false)
+	var has_decoration: bool = decoration.get("underline", false) or decoration.get("line_through", false) or decoration.get("overline", false)
 
 	if not has_decoration or decoration.get("none", false):
 		label.set_meta("text_decoration", decoration)
@@ -238,19 +238,25 @@ class TextDecorationContainer extends Control:
 		size_flags_horizontal = label.size_flags_horizontal
 		size_flags_vertical = label.size_flags_vertical
 
-		# Connect to label resize to update decorations
+		# Connect to resize events
+		resized.connect(_on_resized)
 		label.resized.connect(_on_label_resized)
-		label.item_rect_changed.connect(queue_redraw)
+
+	func _ready() -> void:
+		_update_label_layout()
+
+	func _on_resized() -> void:
+		_update_label_layout()
+		queue_redraw()
 
 	func _on_label_resized() -> void:
 		custom_minimum_size = _label.get_combined_minimum_size()
 		queue_redraw()
 
-	func _notification(what: int) -> void:
-		if what == NOTIFICATION_SORT_CHILDREN:
-			if _label:
-				_label.position = Vector2.ZERO
-				_label.size = size
+	func _update_label_layout() -> void:
+		if _label:
+			_label.position = Vector2.ZERO
+			_label.size = size
 
 	func _draw() -> void:
 		if not _label:
@@ -258,7 +264,6 @@ class TextDecorationContainer extends Control:
 
 		var font := _label.get_theme_font("font")
 		var font_size := _label.get_theme_font_size("font_size")
-		var line_height := font.get_height(font_size)
 		var ascent := font.get_ascent(font_size)
 
 		# Get text width for decoration lines
