@@ -10,7 +10,7 @@ metadata={
 
 [deps]
 
-source_file="res://addons/gml/icons/gml_view.svg"
+source_file="res://addons/gtml/icons/gml_view.svg"
 dest_files=["res://.godot/imported/gml_view.svg-69c672ef1ec1f77cef13c84ee8b3cbd1.ctex"]
 
 [params]

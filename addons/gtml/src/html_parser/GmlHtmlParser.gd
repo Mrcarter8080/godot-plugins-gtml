@@ -7,7 +7,7 @@ extends RefCounted
 ## Supported tags: div, p, span, h1-h6, button, img, br
 ## Supported attributes: id, class, src, @click, and any custom attributes
 
-const GmlNodeScript = preload("res://addons/gml/src/html_parser/GmlNode.gd")
+const GmlNodeScript = preload("res://addons/gtml/src/html_parser/GmlNode.gd")
 
 const SELF_CLOSING_TAGS := ["img", "br", "hr", "input", "meta", "link", "circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "use"]
 const MAX_DEPTH := 100  # Prevent stack overflow on deeply nested HTML

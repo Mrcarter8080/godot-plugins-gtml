@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Static utility class for building media elements (img, svg, progress, br, hr).
 
-const SvgDrawControlScript = preload("res://addons/gml/src/html_renderer/SvgDrawControl.gd")
+const SvgDrawControlScript = preload("res://addons/gtml/src/html_renderer/SvgDrawControl.gd")
 
 
 ## Build an image element.

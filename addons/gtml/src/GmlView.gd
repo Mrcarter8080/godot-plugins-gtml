@@ -7,9 +7,9 @@ class_name GmlView
 ## Supports live preview in editor and @click handlers for buttons.
 
 # Preload dependencies (use preload for scripts without class_name inner classes)
-const GmlHtmlParserScript = preload("res://addons/gml/src/html_parser/GmlHtmlParser.gd")
-const GmlNodeScript = preload("res://addons/gml/src/html_parser/GmlNode.gd")
-const GmlRendererScript = preload("res://addons/gml/src/html_renderer/GmlRenderer.gd")
+const GmlHtmlParserScript = preload("res://addons/gtml/src/html_parser/GmlHtmlParser.gd")
+const GmlNodeScript = preload("res://addons/gtml/src/html_parser/GmlNode.gd")
+const GmlRendererScript = preload("res://addons/gtml/src/html_renderer/GmlRenderer.gd")
 # Note: GmlCssParser and GmlStyleResolver are accessed via their class_name directly
 # because they have inner classes that cause issues with preload().new()
 

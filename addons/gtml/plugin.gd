@@ -4,7 +4,7 @@ extends EditorPlugin
 ## GML Editor Plugin - Registers GmlView custom type and provides main screen editor
 ## for editing HTML/CSS files attached to GmlView nodes.
 
-const GmlEditorPanel = preload("res://addons/gml/editor/gml_editor_panel.tscn")
+const GmlEditorPanel = preload("res://addons/gtml/editor/gml_editor_panel.tscn")
 
 var _editor_panel: Control = null
 var _current_gml_view: WeakRef = weakref(null)
@@ -16,8 +16,8 @@ func _enter_tree() -> void:
 	add_custom_type(
 		"GmlView",
 		"Control",
-		preload("res://addons/gml/src/GmlView.gd"),
-		preload("res://addons/gml/icons/gml_view.svg")
+		preload("res://addons/gtml/src/GmlView.gd"),
+		preload("res://addons/gtml/icons/gml_view.svg")
 	)
 
 	# Create and add main editor panel
@@ -54,7 +54,7 @@ func _get_plugin_name() -> String:
 
 
 func _get_plugin_icon() -> Texture2D:
-	return preload("res://addons/gml/icons/gml_view.svg")
+	return preload("res://addons/gtml/icons/gml_view.svg")
 
 
 func _make_visible(next_visible: bool) -> void:

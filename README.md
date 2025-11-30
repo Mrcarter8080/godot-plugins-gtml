@@ -1,6 +1,4 @@
-![GML Header](header.png)
-
-# GML - Godot Markup Language
+# GTML - Godot Markup Language
 
 A Godot 4.x addon that allows you to build UI from HTML files with external CSS styling. Create game menus, HUDs, and UI panels using familiar web technologies.
 
@@ -17,8 +15,8 @@ A Godot 4.x addon that allows you to build UI from HTML files with external CSS 
 
 ## Installation
 
-1. Copy the `addons/gml/` folder to your project's `addons/` directory
-2. Enable the plugin in Project Settings → Plugins → GML - Godot Markup Language
+1. Copy the `addons/gtml/` folder to your project's `addons/` directory
+2. Enable the plugin in Project Settings → Plugins → GTML - Godot Markup Language
 
 ## Usage
 
@@ -576,7 +574,7 @@ GML is designed with a modular architecture that makes it easy to add new CSS pr
 ### Project Structure
 
 ```
-addons/gml/src/
+addons/gtml/src/
 ├── GmlView.gd                    # Main component (signals, API)
 ├── css/
 │   ├── GmlCssParser.gd           # CSS parsing and dispatch

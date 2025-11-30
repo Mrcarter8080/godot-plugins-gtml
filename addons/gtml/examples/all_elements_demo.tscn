@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dbh2g5nt3toy3"]
 
-[ext_resource type="Script" uid="uid://c7ncronfk6se8" path="res://addons/gml/src/GmlView.gd" id="1_gmlview"]
+[ext_resource type="Script" uid="uid://c7ncronfk6se8" path="res://addons/gtml/src/GmlView.gd" id="1_gmlview"]
 
 [node name="AllElementsDemo" type="Control" unique_id=1804167926]
 layout_mode = 3
@@ -27,5 +27,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_gmlview")
-html_path = "res://addons/gml/examples/all_elements.html"
-css_path = "res://addons/gml/examples/all_elements.css"
+html_path = "res://addons/gtml/examples/all_elements.html"
+css_path = "res://addons/gtml/examples/all_elements.css"

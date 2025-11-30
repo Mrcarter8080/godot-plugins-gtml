@@ -4,8 +4,8 @@ extends Control
 ## GML Editor Panel - Main screen editor for HTML/CSS files attached to GmlView nodes.
 ## Displays editable CodeEdit tabs for HTML and CSS content with save/reload functionality.
 
-const HtmlSyntaxHighlighter = preload("res://addons/gml/editor/html_syntax_highlighter.gd")
-const CssSyntaxHighlighter = preload("res://addons/gml/editor/css_syntax_highlighter.gd")
+const HtmlSyntaxHighlighter = preload("res://addons/gtml/editor/html_syntax_highlighter.gd")
+const CssSyntaxHighlighter = preload("res://addons/gtml/editor/css_syntax_highlighter.gd")
 
 #region Node References
 

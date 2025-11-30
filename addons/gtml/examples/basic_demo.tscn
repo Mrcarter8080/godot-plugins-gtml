@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://gml_basic_demo"]
 
-[ext_resource type="Script" path="res://addons/gml/src/GmlView.gd" id="1_gmlview"]
+[ext_resource type="Script" path="res://addons/gtml/src/GmlView.gd" id="1_gmlview"]
 
 [node name="BasicDemo" type="Control"]
 layout_mode = 3
@@ -27,5 +27,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_gmlview")
-html_path = "res://addons/gml/examples/basic.html"
-css_path = "res://addons/gml/examples/basic.css"
+html_path = "res://addons/gtml/examples/basic.html"
+css_path = "res://addons/gtml/examples/basic.css"
