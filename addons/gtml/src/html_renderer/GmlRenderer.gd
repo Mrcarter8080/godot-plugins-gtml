@@ -401,9 +401,9 @@ static func _parse_cursor(value: String) -> Control.CursorShape:
 		"move":
 			return Control.CURSOR_MOVE
 		"grab":
-			return Control.CURSOR_DRAG
+			return Control.CURSOR_POINTING_HAND  # Godot has no grab cursor, use hand
 		"grabbing":
-			return Control.CURSOR_DRAG
+			return Control.CURSOR_POINTING_HAND
 		"not-allowed", "no-drop":
 			return Control.CURSOR_FORBIDDEN
 		"wait":

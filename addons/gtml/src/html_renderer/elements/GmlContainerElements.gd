@@ -64,14 +64,20 @@ static func build_div_inner(node, ctx: Dictionary) -> Control:
 				GmlStyles.apply_cross_axis_alignment(child_control, align_items, is_row, child_style)
 
 			# Get order value (default 0)
-			var order_value: float = child_style.get("order", 0.0)
+			var order_value = child_style.get("order", 0.0)
+			# Ensure it's a float for comparison
+			if order_value is int:
+				order_value = float(order_value)
+			elif order_value is String:
+				order_value = order_value.to_float()
 			children_with_order.append({"control": child_control, "order": order_value})
 
-	# Sort children by order value
-	children_with_order.sort_custom(func(a, b): return a["order"] < b["order"])
+	# Sort children by order value (ascending)
+	var sorted_children := children_with_order.duplicate()
+	sorted_children.sort_custom(func(a, b): return float(a.get("order", 0.0)) < float(b.get("order", 0.0)))
 
 	# Add children to container in sorted order
-	for child_data in children_with_order:
+	for child_data in sorted_children:
 		container.add_child(child_data["control"])
 
 	# Apply space distribution for space-between/around/evenly (only for BoxContainer)

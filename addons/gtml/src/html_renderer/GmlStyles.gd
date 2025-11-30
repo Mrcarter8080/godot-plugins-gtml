@@ -101,9 +101,24 @@ static func apply_text_styles(label: Label, style: Dictionary, defaults: Diction
 	if style.has("word-spacing"):
 		apply_word_spacing(label, style["word-spacing"])
 
-	# Text indent - store for container to handle via padding
+	# Text indent - prepend spacing to simulate first-line indent
 	if style.has("text-indent"):
-		label.set_meta("text_indent", style["text-indent"])
+		var indent: int = style["text-indent"]
+		if indent > 0 and not label.text.is_empty():
+			# Calculate approximate number of spaces based on indent and font size
+			var font_size: int = 16
+			if label.has_theme_font_size_override("font_size"):
+				font_size = label.get_theme_font_size("font_size")
+			elif style.has("font-size"):
+				font_size = style["font-size"]
+
+			# Use em space (U+2003) which is approximately 1em wide
+			var num_spaces := maxi(1, indent / (font_size / 2))
+			var indent_str := ""
+			for _i in range(num_spaces):
+				indent_str += "\u2003"  # Em space
+			label.text = indent_str + label.text
+		label.set_meta("text_indent", indent)
 
 
 ## Apply text-transform to a label (uppercase, lowercase, capitalize).
@@ -309,34 +324,60 @@ static func apply_text_shadow(label: Label, shadow: Dictionary) -> Control:
 
 
 ## Custom container that renders text shadow behind a label.
+## Simulates blur by creating multiple shadow labels at slight offsets.
 class TextShadowContainer extends Control:
 	var _label: Label
-	var _shadow_label: Label
+	var _shadow_labels: Array[Label] = []
 	var _shadow: Dictionary
 
 	func setup(label: Label, shadow: Dictionary) -> void:
 		_label = label
 		_shadow = shadow
 
-		# Create shadow label (copy of original)
-		_shadow_label = Label.new()
-		_shadow_label.text = label.text
-		_shadow_label.horizontal_alignment = label.horizontal_alignment
-		_shadow_label.vertical_alignment = label.vertical_alignment
-		_shadow_label.autowrap_mode = label.autowrap_mode
-
-		# Copy font settings
-		if label.has_theme_font_override("font"):
-			_shadow_label.add_theme_font_override("font", label.get_theme_font("font"))
-		if label.has_theme_font_size_override("font_size"):
-			_shadow_label.add_theme_font_size_override("font_size", label.get_theme_font_size("font_size"))
-
-		# Apply shadow color
 		var shadow_color: Color = shadow.get("color", Color(0, 0, 0, 0.5))
-		_shadow_label.add_theme_color_override("font_color", shadow_color)
+		var blur: int = shadow.get("blur", 0)
+		var offset_x: float = shadow.get("offset_x", 0)
+		var offset_y: float = shadow.get("offset_y", 0)
 
-		# Add shadow first (behind), then original label
-		add_child(_shadow_label)
+		# For blur effect, create multiple shadow labels at different offsets
+		var num_shadows := 1
+		if blur > 0:
+			num_shadows = mini(blur, 8)  # Cap at 8 shadow layers for performance
+
+		for i in range(num_shadows):
+			var shadow_label := Label.new()
+			shadow_label.text = label.text
+			shadow_label.horizontal_alignment = label.horizontal_alignment
+			shadow_label.vertical_alignment = label.vertical_alignment
+			shadow_label.autowrap_mode = label.autowrap_mode
+
+			# Copy font settings
+			if label.has_theme_font_override("font"):
+				shadow_label.add_theme_font_override("font", label.get_theme_font("font"))
+			if label.has_theme_font_size_override("font_size"):
+				shadow_label.add_theme_font_size_override("font_size", label.get_theme_font_size("font_size"))
+
+			# Apply shadow color with decreasing opacity for blur layers
+			var layer_alpha: float
+			if blur > 0:
+				layer_alpha = shadow_color.a / float(num_shadows) * 1.5
+			else:
+				layer_alpha = shadow_color.a
+
+			var layer_color := Color(shadow_color.r, shadow_color.g, shadow_color.b, layer_alpha)
+			shadow_label.add_theme_color_override("font_color", layer_color)
+
+			# Store offset for this shadow layer (spread out for blur)
+			var spread: float = 0.0
+			if blur > 0 and num_shadows > 1:
+				spread = float(blur) * (float(i) / float(num_shadows - 1)) * 0.5
+			shadow_label.set_meta("spread", spread)
+			shadow_label.set_meta("layer", i)
+
+			add_child(shadow_label)
+			_shadow_labels.append(shadow_label)
+
+		# Add original label on top
 		add_child(label)
 
 		# Match label sizing
@@ -359,22 +400,33 @@ class TextShadowContainer extends Control:
 		_update_layout()
 
 	func _update_layout() -> void:
-		if not _label or not _shadow_label:
+		if not _label or _shadow_labels.is_empty():
 			return
 
 		# Position main label at origin
 		_label.position = Vector2.ZERO
 		_label.size = size
 
-		# Position shadow label with offset
 		var offset_x: float = _shadow.get("offset_x", 0)
 		var offset_y: float = _shadow.get("offset_y", 0)
-		_shadow_label.position = Vector2(offset_x, offset_y)
-		_shadow_label.size = size
+		var blur: int = _shadow.get("blur", 0)
 
-		# Sync text if changed
-		if _shadow_label.text != _label.text:
-			_shadow_label.text = _label.text
+		# Position shadow labels with offset and spread for blur
+		for shadow_label in _shadow_labels:
+			var spread: float = shadow_label.get_meta("spread", 0.0)
+			var layer: int = shadow_label.get_meta("layer", 0)
+
+			# Spread shadows in a pattern for blur effect
+			var angle: float = float(layer) * PI * 0.5
+			var spread_x: float = cos(angle) * spread
+			var spread_y: float = sin(angle) * spread
+
+			shadow_label.position = Vector2(offset_x + spread_x, offset_y + spread_y)
+			shadow_label.size = size
+
+			# Sync text if changed
+			if shadow_label.text != _label.text:
+				shadow_label.text = _label.text
 
 
 ## Apply border properties to a StyleBoxFlat.
