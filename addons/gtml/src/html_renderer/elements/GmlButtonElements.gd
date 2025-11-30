@@ -88,7 +88,9 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
-	var wrapped = _wrap_with_button_margin(button, style)
+	# Apply text decoration (underline, strikethrough, overline)
+	var decorated = _apply_text_decoration(button, style)
+	var wrapped = _wrap_with_button_margin(decorated, style)
 	return {"control": wrapped, "inner": button}
 
 
@@ -120,7 +122,9 @@ static func _build_simple_button(node, ctx: Dictionary, style: Dictionary, defau
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
-	var wrapped = _wrap_with_button_margin(button, style)
+	# Apply text decoration (underline, strikethrough, overline)
+	var decorated = _apply_text_decoration(button, style)
+	var wrapped = _wrap_with_button_margin(decorated, style)
 	return {"control": wrapped, "inner": button}
 
 
@@ -351,8 +355,108 @@ static func _capitalize_words(text: String) -> String:
 	return " ".join(result)
 
 
-## Wrap button with margin only.
-static func _wrap_with_button_margin(button: Button, style: Dictionary) -> Control:
+## Apply text-decoration to a button by wrapping it with a custom draw container.
+static func _apply_text_decoration(button: Button, style: Dictionary) -> Control:
+	if not style.has("text-decoration"):
+		return button
+
+	var decoration = style["text-decoration"]
+	if not decoration is Dictionary:
+		return button
+
+	var has_decoration: bool = decoration.get("underline", false) or decoration.get("line_through", false) or decoration.get("overline", false)
+	if not has_decoration or decoration.get("none", false):
+		return button
+
+	var color: Color = style.get("color", Color.WHITE)
+	var container := ButtonDecorationContainer.new()
+	container.setup(button, decoration, color)
+	return container
+
+
+## Custom container that draws text decorations over a button.
+class ButtonDecorationContainer extends Control:
+	var _button: Button
+	var _decoration: Dictionary
+	var _color: Color
+
+	func setup(button: Button, decoration: Dictionary, color: Color) -> void:
+		_button = button
+		_decoration = decoration
+		_color = color
+
+		add_child(button)
+
+		# Match button sizing
+		custom_minimum_size = button.custom_minimum_size
+		size_flags_horizontal = button.size_flags_horizontal
+		size_flags_vertical = button.size_flags_vertical
+
+		# Connect to resize events
+		resized.connect(_on_resized)
+		button.resized.connect(_on_button_resized)
+
+	func _ready() -> void:
+		_update_button_layout()
+
+	func _on_resized() -> void:
+		_update_button_layout()
+		queue_redraw()
+
+	func _on_button_resized() -> void:
+		custom_minimum_size = _button.get_combined_minimum_size()
+		queue_redraw()
+
+	func _update_button_layout() -> void:
+		if _button:
+			_button.position = Vector2.ZERO
+			_button.size = size
+
+	func _draw() -> void:
+		if not _button or _button.text.is_empty():
+			return
+
+		var font := _button.get_theme_font("font")
+		var font_size := _button.get_theme_font_size("font_size")
+		var ascent := font.get_ascent(font_size)
+
+		# Get text size
+		var text_size := font.get_string_size(_button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+
+		# Get button content area (accounting for StyleBox margins)
+		var style_box := _button.get_theme_stylebox("normal")
+		var content_margin_left := style_box.content_margin_left if style_box else 0.0
+		var content_margin_top := style_box.content_margin_top if style_box else 0.0
+		var content_margin_right := style_box.content_margin_right if style_box else 0.0
+		var content_margin_bottom := style_box.content_margin_bottom if style_box else 0.0
+
+		var content_width := size.x - content_margin_left - content_margin_right
+		var content_height := size.y - content_margin_top - content_margin_bottom
+
+		# Calculate text position (centered in content area)
+		var text_x := content_margin_left + (content_width - text_size.x) / 2.0
+		var text_y := content_margin_top + (content_height - text_size.y) / 2.0
+
+		var line_thickness := maxf(1.0, font_size / 12.0)
+
+		# Draw underline
+		if _decoration.get("underline", false):
+			var y := text_y + ascent + line_thickness * 2
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+		# Draw line-through (strikethrough)
+		if _decoration.get("line_through", false):
+			var y := text_y + ascent * 0.6
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+		# Draw overline
+		if _decoration.get("overline", false):
+			var y := text_y + line_thickness
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+
+## Wrap button (or decorated button container) with margin only.
+static func _wrap_with_button_margin(button: Control, style: Dictionary) -> Control:
 	var has_margin = style.has("margin") and style["margin"] > 0 \
 		or style.has("margin-top") or style.has("margin-right") or style.has("margin-bottom") or style.has("margin-left")
 
