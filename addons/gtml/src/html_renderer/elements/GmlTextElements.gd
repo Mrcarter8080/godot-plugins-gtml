@@ -95,6 +95,7 @@ static func build_label(node, ctx: Dictionary) -> Dictionary:
 static func build_label_inner(node, ctx: Dictionary) -> Control:
 	var style = ctx.get_style.call(node)
 	var defaults: Dictionary = ctx.defaults
+	var gml_view = ctx.gml_view
 
 	var label := Label.new()
 	var font_size: int = style.get("font-size", defaults.get("p_font_size", 16))
@@ -105,10 +106,22 @@ static func build_label_inner(node, ctx: Dictionary) -> Control:
 	GmlStyles.apply_text_color(label, style, defaults)
 	GmlStyles.apply_text_styles(label, style, defaults)
 
-	# Store the "for" attribute
+	# Store the "for" attribute and enable click-to-focus behavior
 	var for_id = node.get_attr("for", "")
 	if not for_id.is_empty():
 		label.set_meta("for", for_id)
+		# Make label clickable and focus the associated input
+		label.mouse_filter = Control.MOUSE_FILTER_STOP
+		if gml_view != null:
+			var view_ref = weakref(gml_view)
+			label.gui_input.connect(func(event: InputEvent):
+				if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+					var view = view_ref.get_ref()
+					if view != null:
+						var target = view.get_element_by_id(for_id)
+						if target != null and target is Control:
+							target.grab_focus()
+			)
 
 	return label
 

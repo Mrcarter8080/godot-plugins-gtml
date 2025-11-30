@@ -87,6 +87,8 @@ var _rebuild_queued: bool = false
 var _elements_by_id: Dictionary = {}
 ## Dictionary mapping element IDs to their wrapper Control nodes (for visibility control)
 var _wrappers_by_id: Dictionary = {}
+## Dictionary mapping radio group names to ButtonGroup instances
+var _radio_groups: Dictionary = {}
 
 #endregion
 
@@ -272,6 +274,7 @@ func _update_root_percent_size(control: Control, width_pct: float, height_pct: f
 func _clear_children() -> void:
 	_elements_by_id.clear()
 	_wrappers_by_id.clear()
+	_radio_groups.clear()
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
@@ -387,5 +390,13 @@ func register_element(element_id: String, inner_control: Control, wrapper_contro
 func clear_element_registry() -> void:
 	_elements_by_id.clear()
 	_wrappers_by_id.clear()
+
+
+## Get or create a ButtonGroup for radio inputs with the given name.
+## Radio inputs with the same name share a ButtonGroup so only one can be selected.
+func get_radio_group(group_name: String) -> ButtonGroup:
+	if not _radio_groups.has(group_name):
+		_radio_groups[group_name] = ButtonGroup.new()
+	return _radio_groups[group_name]
 
 #endregion

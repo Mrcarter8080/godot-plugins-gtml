@@ -152,19 +152,25 @@ func _build_text_node(node) -> Control:
 
 
 ## Register an element with the GmlView, tracking both inner control and wrapper.
-## aria-label attribute sets the Control.name for accessible identification.
+## aria-node attribute sets the Control.name for accessible identification.
+## title attribute sets the tooltip text.
 ## id attribute is used for element lookup registration.
 func _register_element_with_id(inner_control: Control, wrapper_control: Control, node) -> void:
-	# aria-label sets the Control.name (accessible identification)
-	var aria_label = node.get_attr("aria-label", "")
-	if not aria_label.is_empty():
-		inner_control.name = aria_label
+	# aria-node sets the Control.name (accessible identification)
+	var aria_node = node.get_attr("aria-node", "")
+	if not aria_node.is_empty():
+		inner_control.name = aria_node
+
+	# title attribute sets the tooltip
+	var title = node.get_attr("title", "")
+	if not title.is_empty():
+		inner_control.tooltip_text = title
 
 	# id is used for element registry lookup (and fallback for Control.name)
 	var id = node.get_id()
 	if not id.is_empty():
-		# Only set name from id if aria-label wasn't provided
-		if aria_label.is_empty():
+		# Only set name from id if aria-node wasn't provided
+		if aria_node.is_empty():
 			inner_control.name = id
 		# Always register with the view for get_element_by_id lookup
 		if _gml_view != null:
