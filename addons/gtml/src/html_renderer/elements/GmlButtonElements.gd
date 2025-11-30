@@ -82,13 +82,16 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 					view.button_clicked.emit(method_name)
 			)
 
-	# Apply button-specific styles (padding handled by StyleBox content margins)
-	_apply_button_styles(button, style, defaults, false)
+	# Try to set up transitions first, fall back to regular styles
+	if not _setup_button_transitions(button, style, defaults, ctx, false):
+		_apply_button_styles(button, style, defaults, false)
 
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
-	var wrapped = _wrap_with_button_margin(button, style)
+	# Apply text decoration (underline, strikethrough, overline)
+	var decorated = _apply_text_decoration(button, style)
+	var wrapped = _wrap_with_button_margin(decorated, style)
 	return {"control": wrapped, "inner": button}
 
 
@@ -115,13 +118,195 @@ static func _build_simple_button(node, ctx: Dictionary, style: Dictionary, defau
 					view.button_clicked.emit(method_name)
 			)
 
-	_apply_button_styles(button, style, defaults)
+	# Try to set up transitions first, fall back to regular styles
+	if not _setup_button_transitions(button, style, defaults, ctx):
+		_apply_button_styles(button, style, defaults)
 
 	if not style.has("width") and not style.has("min-width"):
 		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
-	var wrapped = _wrap_with_button_margin(button, style)
+	# Apply text decoration (underline, strikethrough, overline)
+	var decorated = _apply_text_decoration(button, style)
+	var wrapped = _wrap_with_button_margin(decorated, style)
 	return {"control": wrapped, "inner": button}
+
+
+## Set up transitions for a button.
+## Returns true if transitions are being used, false otherwise.
+static func _setup_button_transitions(button: Button, style: Dictionary, defaults: Dictionary, ctx: Dictionary, skip_padding: bool = false) -> bool:
+	var transitions: Array = style.get("transition", [])
+	if transitions.is_empty():
+		return false
+
+	var transition_manager: GmlTransitionManager = ctx.get("transition_manager")
+	if transition_manager == null:
+		return false
+
+	# Get pseudo-class styles
+	var hover_style: Dictionary = style.get("_hover", {})
+	var active_style: Dictionary = style.get("_active", {})
+	var focus_style: Dictionary = style.get("_focus", {})
+
+	# If no pseudo-class styles defined, don't use transitions
+	if hover_style.is_empty() and active_style.is_empty() and focus_style.is_empty():
+		return false
+
+	# Create base StyleBox and apply it
+	var base_stylebox := StyleBoxFlat.new()
+
+	if style.has("background-color"):
+		base_stylebox.bg_color = style["background-color"]
+	else:
+		base_stylebox.bg_color = Color(0.2, 0.2, 0.2, 1.0)
+
+	# Padding
+	if not skip_padding:
+		var base_padding: int = style.get("padding", 8)
+		base_stylebox.content_margin_top = style.get("padding-top", base_padding)
+		base_stylebox.content_margin_right = style.get("padding-right", base_padding)
+		base_stylebox.content_margin_bottom = style.get("padding-bottom", base_padding)
+		base_stylebox.content_margin_left = style.get("padding-left", base_padding)
+
+	GmlStyles.apply_border_to_stylebox(base_stylebox, style)
+
+	# Apply base style to all states initially (we'll animate changes)
+	button.add_theme_stylebox_override("normal", base_stylebox)
+	button.add_theme_stylebox_override("hover", base_stylebox.duplicate())
+	button.add_theme_stylebox_override("pressed", base_stylebox.duplicate())
+	button.add_theme_stylebox_override("focus", base_stylebox.duplicate())
+
+	# Text color
+	if style.has("color"):
+		button.add_theme_color_override("font_color", style["color"])
+		button.add_theme_color_override("font_hover_color", style["color"])
+		button.add_theme_color_override("font_pressed_color", style["color"])
+		button.add_theme_color_override("font_focus_color", style["color"])
+
+	# Build complete style dictionaries for transitions
+	var base_style_complete := style.duplicate()
+	base_style_complete.erase("_hover")
+	base_style_complete.erase("_active")
+	base_style_complete.erase("_focus")
+	base_style_complete.erase("_disabled")
+
+	# Normalize border properties - extract border-color from border shorthand
+	_normalize_border_properties(base_style_complete)
+
+	# Store stylebox properties for transition manager (after normalization)
+	var stylebox_props := {}
+	if base_style_complete.has("border-radius"):
+		stylebox_props["corner_radius"] = base_style_complete["border-radius"]
+	if base_style_complete.has("border-width"):
+		stylebox_props["border_width"] = base_style_complete["border-width"]
+	if base_style_complete.has("border-color"):
+		stylebox_props["border_color"] = base_style_complete["border-color"]
+	button.set_meta("_stylebox_props", stylebox_props)
+
+	# Merge base with pseudo-class for complete target styles
+	var hover_complete := base_style_complete.duplicate()
+	for key in hover_style:
+		hover_complete[key] = hover_style[key]
+
+	var active_complete := base_style_complete.duplicate()
+	for key in active_style:
+		active_complete[key] = active_style[key]
+
+	var focus_complete := base_style_complete.duplicate()
+	for key in focus_style:
+		focus_complete[key] = focus_style[key]
+
+	# Track button state
+	var state := {"current": "base", "is_pressed": false, "is_focused": false}
+
+	# Hover transitions
+	button.mouse_entered.connect(func():
+		if not state.is_pressed:
+			var from_style = base_style_complete
+			transition_manager.transition_style(button, from_style, hover_complete, transitions)
+			state.current = "hover"
+	)
+	button.mouse_exited.connect(func():
+		if not state.is_pressed:
+			var to_style = focus_complete if state.is_focused else base_style_complete
+			transition_manager.transition_style(button, hover_complete, to_style, transitions)
+			state.current = "focus" if state.is_focused else "base"
+	)
+
+	# Pressed/active transitions
+	button.button_down.connect(func():
+		state.is_pressed = true
+		var from_style = hover_complete if button.is_hovered() else base_style_complete
+		transition_manager.transition_style(button, from_style, active_complete, transitions)
+		state.current = "active"
+	)
+	button.button_up.connect(func():
+		state.is_pressed = false
+		var to_style = hover_complete if button.is_hovered() else base_style_complete
+		transition_manager.transition_style(button, active_complete, to_style, transitions)
+		state.current = "hover" if button.is_hovered() else "base"
+	)
+
+	# Focus transitions
+	button.focus_entered.connect(func():
+		state.is_focused = true
+		if not state.is_pressed and not button.is_hovered() and not focus_style.is_empty():
+			transition_manager.transition_style(button, base_style_complete, focus_complete, transitions)
+			state.current = "focus"
+	)
+	button.focus_exited.connect(func():
+		state.is_focused = false
+		if not state.is_pressed and not button.is_hovered() and not focus_style.is_empty():
+			transition_manager.transition_style(button, focus_complete, base_style_complete, transitions)
+			state.current = "base"
+	)
+
+	# Apply remaining non-transition styles
+	_apply_button_text_styles(button, style, defaults)
+
+	return true
+
+
+## Apply text-related styles to a button (font, transform, etc.)
+static func _apply_button_text_styles(button: Button, style: Dictionary, defaults: Dictionary) -> void:
+	# Font family
+	if style.has("font-family"):
+		var font_name: String = style["font-family"]
+		var fonts_dict: Dictionary = defaults.get("fonts", {})
+		if fonts_dict.has(font_name):
+			var font = fonts_dict[font_name]
+			if font is Font:
+				button.add_theme_font_override("font", font)
+
+	# Font size
+	if style.has("font-size"):
+		var font_size: int = style["font-size"]
+		button.add_theme_font_size_override("font_size", font_size)
+
+	# Font weight
+	if style.has("font-weight"):
+		var weight: int = style["font-weight"]
+		if weight >= 600:
+			var outline_size: int
+			if weight >= 900:
+				outline_size = 7
+			elif weight >= 800:
+				outline_size = 4
+			else:
+				outline_size = 1
+			button.add_theme_constant_override("outline_size", outline_size)
+			var font_color: Color = style.get("color", Color.WHITE)
+			button.add_theme_color_override("font_outline_color", font_color)
+
+	# Text transform
+	if style.has("text-transform") and not button.text.is_empty():
+		var transform: String = style["text-transform"]
+		match transform:
+			"uppercase":
+				button.text = button.text.to_upper()
+			"lowercase":
+				button.text = button.text.to_lower()
+			"capitalize":
+				button.text = _capitalize_words(button.text)
 
 
 ## Apply styles directly to a button's StyleBox.
@@ -283,6 +468,37 @@ static func _apply_button_styles(button: Button, style: Dictionary, defaults: Di
 			disabled_outline_color.a *= 0.5
 			button.add_theme_color_override("font_disabled_outline_color", disabled_outline_color)
 
+	# Text transform (uppercase, lowercase, capitalize)
+	if style.has("text-transform") and not button.text.is_empty():
+		var transform: String = style["text-transform"]
+		match transform:
+			"uppercase":
+				button.text = button.text.to_upper()
+			"lowercase":
+				button.text = button.text.to_lower()
+			"capitalize":
+				button.text = _capitalize_words(button.text)
+
+	# Word spacing
+	if style.has("word-spacing"):
+		var spacing: int = style["word-spacing"]
+		if spacing > 0 and not button.text.is_empty():
+			var space_char := ""
+			if spacing >= 8:
+				space_char = "  "
+			elif spacing >= 4:
+				space_char = " "
+			elif spacing >= 2:
+				space_char = "\u2002"
+			else:
+				space_char = "\u2009"
+			var num_extra := maxi(1, spacing / 4)
+			var words := button.text.split(" ")
+			var extra_spacing := ""
+			for _i in range(num_extra):
+				extra_spacing += space_char
+			button.text = (extra_spacing + " ").join(words)
+
 	# Letter spacing
 	if style.has("letter-spacing"):
 		var spacing: float = style["letter-spacing"]
@@ -308,8 +524,120 @@ static func _apply_button_styles(button: Button, style: Dictionary, defaults: Di
 			button.text = spaced_text
 
 
-## Wrap button with margin only.
-static func _wrap_with_button_margin(button: Button, style: Dictionary) -> Control:
+## Capitalize first letter of each word.
+static func _capitalize_words(text: String) -> String:
+	var words := text.split(" ")
+	var result := PackedStringArray()
+	for word in words:
+		if word.length() > 0:
+			result.append(word[0].to_upper() + word.substr(1))
+		else:
+			result.append(word)
+	return " ".join(result)
+
+
+## Apply text-decoration to a button by wrapping it with a custom draw container.
+static func _apply_text_decoration(button: Button, style: Dictionary) -> Control:
+	if not style.has("text-decoration"):
+		return button
+
+	var decoration = style["text-decoration"]
+	if not decoration is Dictionary:
+		return button
+
+	var has_decoration: bool = decoration.get("underline", false) or decoration.get("line_through", false) or decoration.get("overline", false)
+	if not has_decoration or decoration.get("none", false):
+		return button
+
+	var color: Color = style.get("color", Color.WHITE)
+	var container := ButtonDecorationContainer.new()
+	container.setup(button, decoration, color)
+	return container
+
+
+## Custom container that draws text decorations over a button.
+class ButtonDecorationContainer extends Control:
+	var _button: Button
+	var _decoration: Dictionary
+	var _color: Color
+
+	func setup(button: Button, decoration: Dictionary, color: Color) -> void:
+		_button = button
+		_decoration = decoration
+		_color = color
+
+		add_child(button)
+
+		# Match button sizing
+		custom_minimum_size = button.custom_minimum_size
+		size_flags_horizontal = button.size_flags_horizontal
+		size_flags_vertical = button.size_flags_vertical
+
+		# Connect to resize events
+		resized.connect(_on_resized)
+		button.resized.connect(_on_button_resized)
+
+	func _ready() -> void:
+		_update_button_layout()
+
+	func _on_resized() -> void:
+		_update_button_layout()
+		queue_redraw()
+
+	func _on_button_resized() -> void:
+		custom_minimum_size = _button.get_combined_minimum_size()
+		queue_redraw()
+
+	func _update_button_layout() -> void:
+		if _button:
+			_button.position = Vector2.ZERO
+			_button.size = size
+
+	func _draw() -> void:
+		if not _button or _button.text.is_empty():
+			return
+
+		var font := _button.get_theme_font("font")
+		var font_size := _button.get_theme_font_size("font_size")
+		var ascent := font.get_ascent(font_size)
+
+		# Get text size
+		var text_size := font.get_string_size(_button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+
+		# Get button content area (accounting for StyleBox margins)
+		var style_box := _button.get_theme_stylebox("normal")
+		var content_margin_left := style_box.content_margin_left if style_box else 0.0
+		var content_margin_top := style_box.content_margin_top if style_box else 0.0
+		var content_margin_right := style_box.content_margin_right if style_box else 0.0
+		var content_margin_bottom := style_box.content_margin_bottom if style_box else 0.0
+
+		var content_width := size.x - content_margin_left - content_margin_right
+		var content_height := size.y - content_margin_top - content_margin_bottom
+
+		# Calculate text position (centered in content area)
+		var text_x := content_margin_left + (content_width - text_size.x) / 2.0
+		var text_y := content_margin_top + (content_height - text_size.y) / 2.0
+
+		var line_thickness := maxf(2.0, font_size / 8.0)
+
+		# Draw underline
+		if _decoration.get("underline", false):
+			var y := text_y + ascent + line_thickness * 2
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+		# Draw line-through (strikethrough)
+		if _decoration.get("line_through", false):
+			var y := text_y + ascent * 0.6
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+		# Draw overline
+		if _decoration.get("overline", false):
+			var y := text_y + line_thickness
+			draw_line(Vector2(text_x, y), Vector2(text_x + text_size.x, y), _color, line_thickness)
+
+
+## Wrap button (or decorated button container) with margin only.
+static func _wrap_with_button_margin(button: Control, style: Dictionary) -> Control:
 	var has_margin = style.has("margin") and style["margin"] > 0 \
 		or style.has("margin-top") or style.has("margin-right") or style.has("margin-bottom") or style.has("margin-left")
 
@@ -325,3 +653,16 @@ static func _wrap_with_button_margin(button: Button, style: Dictionary) -> Contr
 	margin_container.add_child(button)
 
 	return margin_container
+
+
+## Normalize border properties - extract border-color, border-width from border shorthand.
+## This ensures transitions can find the individual properties.
+static func _normalize_border_properties(style: Dictionary) -> void:
+	if style.has("border") and style["border"] is Dictionary:
+		var border_dict: Dictionary = style["border"]
+		# Extract border-color if not already set
+		if not style.has("border-color") and border_dict.has("color"):
+			style["border-color"] = border_dict["color"]
+		# Extract border-width if not already set
+		if not style.has("border-width") and border_dict.has("width"):
+			style["border-width"] = border_dict["width"]

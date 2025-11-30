@@ -59,6 +59,58 @@
     </div>
 
     <div class="section">
+        <h3>Flex Wrap</h3>
+        <div class="demo-box">
+            <div class="row wrap-container">
+                <div class="item">1</div>
+                <div class="item">2</div>
+                <div class="item">3</div>
+                <div class="item">4</div>
+                <div class="item">5</div>
+                <div class="item">6</div>
+            </div>
+            <span class="label">flex-wrap: wrap (items wrap to next line)</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Flex Order</h3>
+        <div class="demo-box">
+            <div class="row">
+                <div class="item order-3">3rd</div>
+                <div class="item order-1">1st</div>
+                <div class="item order-2">2nd</div>
+            </div>
+            <span class="label">Items reordered with CSS order property</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Align Self</h3>
+        <div class="demo-box">
+            <div class="row tall">
+                <div class="item self-start">start</div>
+                <div class="item self-center">center</div>
+                <div class="item self-end">end</div>
+            </div>
+            <span class="label">Individual items with align-self override</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Row & Column Gap</h3>
+        <div class="demo-box">
+            <div class="row wrap-container gap-demo">
+                <div class="item">1</div>
+                <div class="item">2</div>
+                <div class="item">3</div>
+                <div class="item">4</div>
+            </div>
+            <span class="label">row-gap: 8px, column-gap: 24px</span>
+        </div>
+    </div>
+
+    <div class="section">
         <h3>Interactive Buttons</h3>
         <div class="button-row">
             <button class="btn-primary" @click="on_primary">Primary</button>

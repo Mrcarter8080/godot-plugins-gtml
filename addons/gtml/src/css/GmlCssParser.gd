@@ -5,7 +5,7 @@ extends RefCounted
 ## Parses a subset of CSS into an array of rules.
 ##
 ## Supported selectors: tag, .class, #id
-## Supported properties: display, flex-direction, gap, margin, padding, background-color, color, font-size, width, height,
+## Supported properties: display, flex-direction, gap, row-gap, column-gap, margin, padding, background-color, color, font-size, width, height,
 ##   align-items, justify-content, border, border-width, border-color, border-radius,
 ##   border-top, border-right, border-bottom, border-left,
 ##   border-top-width, border-right-width, border-bottom-width, border-left-width,
@@ -13,9 +13,12 @@ extends RefCounted
 ##   padding-top, padding-right, padding-bottom, padding-left,
 ##   margin-top, margin-right, margin-bottom, margin-left,
 ##   font-family, font-weight, letter-spacing, text-align, opacity, min-width, max-width, min-height, max-height,
-##   flex-grow, flex-shrink, border-top-left-radius, border-top-right-radius,
+##   flex-grow, flex-shrink, flex-basis, flex-wrap, align-self, order,
+##   border-top-left-radius, border-top-right-radius,
 ##   border-bottom-left-radius, border-bottom-right-radius, overflow, visibility,
-##   background, background-image (linear-gradient, radial-gradient)
+##   background, background-image (linear-gradient, radial-gradient),
+##   text-decoration, line-height, text-transform, text-indent, word-spacing, white-space, text-overflow,
+##   transition, transition-property, transition-duration, transition-timing-function, transition-delay
 
 var _pos: int = 0
 var _css: String = ""
@@ -24,20 +27,24 @@ var _length: int = 0
 # Property categories for dispatch
 const PASSTHROUGH_PROPS = [
 	"display", "flex-direction", "align-items", "justify-content",
-	"text-align", "overflow", "overflow-x", "overflow-y", "visibility"
+	"text-align", "overflow", "overflow-x", "overflow-y", "visibility",
+	"text-transform", "white-space", "text-overflow",
+	"flex-wrap", "align-self", "cursor", "list-style-type"
 ]
 
 const SIZE_PROPS = [
-	"gap", "margin", "padding", "font-size", "border-width", "border-radius",
+	"gap", "row-gap", "column-gap", "margin", "padding", "font-size", "border-width", "border-radius",
 	"border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
 	"padding-top", "padding-right", "padding-bottom", "padding-left",
 	"margin-top", "margin-right", "margin-bottom", "margin-left",
 	"border-top-left-radius", "border-top-right-radius",
-	"border-bottom-left-radius", "border-bottom-right-radius"
+	"border-bottom-left-radius", "border-bottom-right-radius",
+	"text-indent", "word-spacing", "line-height", "outline-offset"
 ]
 
 const DIMENSION_PROPS = [
-	"width", "height", "min-width", "max-width", "min-height", "max-height"
+	"width", "height", "min-width", "max-width", "min-height", "max-height",
+	"flex-basis"
 ]
 
 const COLOR_PROPS = [
@@ -50,7 +57,12 @@ const BORDER_PROPS = [
 ]
 
 const FLOAT_PROPS = [
-	"opacity", "flex-grow", "flex-shrink"
+	"opacity", "flex-grow", "flex-shrink", "order"
+]
+
+const TRANSITION_PROPS = [
+	"transition", "transition-property", "transition-duration",
+	"transition-timing-function", "transition-delay"
 ]
 
 
@@ -289,6 +301,10 @@ func _convert_property_value(prop_name: String, value: String):
 	if prop_name == "letter-spacing":
 		return GmlFontValues.parse_letter_spacing(value)
 
+	# Text decoration (can have multiple values like "underline line-through")
+	if prop_name == "text-decoration":
+		return GmlFontValues.parse_text_decoration(value)
+
 	# Background properties
 	if prop_name == "background" or prop_name == "background-image":
 		return GmlBackgroundValues.parse_background(value)
@@ -296,6 +312,26 @@ func _convert_property_value(prop_name: String, value: String):
 	# Box shadow
 	if prop_name == "box-shadow":
 		return GmlBorderValues.parse_box_shadow(value)
+
+	# Text shadow
+	if prop_name == "text-shadow":
+		return GmlBorderValues.parse_text_shadow(value)
+
+	# Outline
+	if prop_name == "outline":
+		return GmlBorderValues.parse_outline(value)
+
+	# Transition properties
+	if prop_name == "transition":
+		return GmlTransitionValues.parse_transition(value)
+	if prop_name == "transition-property":
+		return GmlTransitionValues.parse_transition_property(value)
+	if prop_name == "transition-duration":
+		return GmlTransitionValues.parse_transition_duration(value)
+	if prop_name == "transition-timing-function":
+		return GmlTransitionValues.parse_transition_timing_function(value)
+	if prop_name == "transition-delay":
+		return GmlTransitionValues.parse_transition_delay(value)
 
 	# Unknown property - return as string
 	return value

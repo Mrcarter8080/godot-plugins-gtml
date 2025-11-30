@@ -300,3 +300,86 @@ button {
     color: #444466;
     font-size: 12px;
 }
+
+/* List Style Types */
+.circle-list { list-style-type: circle; }
+.square-list { list-style-type: square; }
+.alpha-list { list-style-type: lower-alpha; }
+.roman-list { list-style-type: upper-roman; }
+
+/* Text Decorations */
+.underline {
+    color: #9999bb;
+    font-size: 15px;
+    text-decoration: underline;
+}
+
+.strikethrough {
+    color: #9999bb;
+    font-size: 15px;
+    text-decoration: line-through;
+}
+
+.overline {
+    color: #9999bb;
+    font-size: 15px;
+    text-decoration: overline;
+}
+
+/* Text Shadows */
+.shadow-dark {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    text-shadow: 2px 2px 4px #000000;
+}
+
+.shadow-glow {
+    color: #00d4ff;
+    font-size: 18px;
+    font-weight: 600;
+    text-shadow: 0px 0px 12px #00d4ff;
+}
+
+.shadow-subtle {
+    text-shadow: 1px 1px 2px #000000;
+}
+
+/* Text Transform */
+.uppercase {
+    color: #9999bb;
+    font-size: 15px;
+    text-transform: uppercase;
+}
+
+.lowercase {
+    color: #9999bb;
+    font-size: 15px;
+    text-transform: lowercase;
+}
+
+.capitalize {
+    color: #9999bb;
+    font-size: 15px;
+    text-transform: capitalize;
+}
+
+/* Cursor Styles */
+.cursor-box {
+    padding: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: #2a2a3e;
+    border-radius: 6px;
+    color: #aaaacc;
+    font-size: 13px;
+}
+
+.cursor-pointer { cursor: pointer; }
+.cursor-text { cursor: text; }
+.cursor-move { cursor: move; }
+.cursor-grab { cursor: grab; }
+
+.cursor-box:hover {
+    background-color: #3a3a5a;
+}

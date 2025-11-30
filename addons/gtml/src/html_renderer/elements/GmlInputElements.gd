@@ -18,6 +18,8 @@ static func build_input(node, ctx: Dictionary) -> Dictionary:
 			inner = _build_text_input(node, input_type, style, gml_view, defaults)
 		"checkbox":
 			inner = _build_checkbox_input(node, style, gml_view, defaults)
+		"radio":
+			inner = _build_radio_input(node, style, gml_view, defaults)
 		"range":
 			inner = _build_range_input(node, style, gml_view, defaults)
 		"submit":
@@ -122,6 +124,55 @@ static func _build_checkbox_input(node, style: Dictionary, gml_view, defaults: D
 		)
 
 	return checkbox
+
+
+## Build a radio input.
+## Radio buttons with the same "name" attribute are grouped together.
+static func _build_radio_input(node, style: Dictionary, gml_view, defaults: Dictionary = {}) -> Control:
+	var radio := CheckBox.new()
+
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		radio.disabled = true
+
+	# Apply font styles
+	_apply_font_styles(radio, style, defaults)
+
+	# Get label text (text content of the input element)
+	var text = node.get_text_content()
+	if not text.is_empty():
+		radio.text = text
+
+	# Handle checked attribute
+	var checked = node.has_attr("checked")
+	radio.button_pressed = checked
+
+	# Get value attribute (used when emitting changes)
+	var value = node.get_attr("value", "on")
+	radio.set_meta("value", value)
+
+	# Group radios by name attribute using ButtonGroup
+	var group_name = node.get_attr("name", "")
+	if gml_view != null and not group_name.is_empty():
+		var button_group = gml_view.get_radio_group(group_name)
+		radio.button_group = button_group
+
+	# Get input ID (prefer id, fallback to name)
+	var input_id = node.get_id()
+	if input_id.is_empty():
+		input_id = node.get_attr("name", "")
+
+	# Emit input_changed signal with the value when selected
+	if gml_view != null and not input_id.is_empty():
+		var view_ref = weakref(gml_view)
+		radio.toggled.connect(func(pressed: bool):
+			if pressed:  # Only emit when selected, not when deselected
+				var view = view_ref.get_ref()
+				if view != null:
+					view.input_changed.emit(input_id, value)
+		)
+
+	return radio
 
 
 ## Build a range input (slider).
