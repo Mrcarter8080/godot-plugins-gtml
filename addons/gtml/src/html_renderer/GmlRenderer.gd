@@ -133,8 +133,13 @@ func _build_node(node) -> Control:
 		_apply_node_styles(control, node)
 		_apply_dimensions(control, node)
 		# Set up hover transitions if defined (for non-button elements)
-		if not (control is Button):
-			_setup_hover_transitions(control, node)
+		# Use inner control for input elements (LineEdit/TextEdit), control for containers
+		if not (inner is Button):
+			var transition_target = control
+			# For input elements, the stylebox is on the inner control
+			if inner is LineEdit or inner is TextEdit:
+				transition_target = inner
+			_setup_hover_transitions(transition_target, node)
 
 	return control
 
@@ -421,6 +426,9 @@ func _setup_hover_transitions(control: Control, node) -> void:
 	base_style.erase("_focus")
 	base_style.erase("_disabled")
 
+	# Normalize styles to extract border-color from border shorthand
+	_normalize_border_properties(base_style)
+
 	var hover_complete := base_style.duplicate()
 	for key in hover_style:
 		hover_complete[key] = hover_style[key]
@@ -429,14 +437,14 @@ func _setup_hover_transitions(control: Control, node) -> void:
 	for key in focus_style:
 		focus_complete[key] = focus_style[key]
 
-	# Store stylebox properties for transition manager
+	# Store stylebox properties for transition manager (use base_style which is normalized)
 	var stylebox_props := {}
-	if style.has("border-radius"):
-		stylebox_props["corner_radius"] = style["border-radius"]
-	if style.has("border-width"):
-		stylebox_props["border_width"] = style["border-width"]
-	if style.has("border-color"):
-		stylebox_props["border_color"] = style["border-color"]
+	if base_style.has("border-radius"):
+		stylebox_props["corner_radius"] = base_style["border-radius"]
+	if base_style.has("border-width"):
+		stylebox_props["border_width"] = base_style["border-width"]
+	if base_style.has("border-color"):
+		stylebox_props["border_color"] = base_style["border-color"]
 	control.set_meta("_stylebox_props", stylebox_props)
 
 	var transition_manager = _transition_manager
@@ -469,6 +477,19 @@ func _setup_hover_transitions(control: Control, node) -> void:
 			if not state.is_hovered:
 				transition_manager.transition_style(control, focus_complete, base_style, transitions)
 		)
+
+
+## Normalize border properties - extract border-color, border-width from border shorthand.
+## This ensures transitions can find the individual properties.
+func _normalize_border_properties(style: Dictionary) -> void:
+	if style.has("border") and style["border"] is Dictionary:
+		var border_dict: Dictionary = style["border"]
+		# Extract border-color if not already set
+		if not style.has("border-color") and border_dict.has("color"):
+			style["border-color"] = border_dict["color"]
+		# Extract border-width if not already set
+		if not style.has("border-width") and border_dict.has("width"):
+			style["border-width"] = border_dict["width"]
 
 
 ## Parse CSS cursor value to Godot CursorShape.
@@ -688,6 +709,9 @@ func _wrap_with_margin_padding(control: Control, style: Dictionary) -> Control:
 		padding_container.add_theme_constant_override("margin_right", style.get("padding-right", base_padding))
 		padding_container.add_theme_constant_override("margin_top", style.get("padding-top", base_padding))
 		padding_container.add_theme_constant_override("margin_bottom", style.get("padding-bottom", base_padding))
+		# Set mouse_filter to pass events through for hover detection on parent
+		padding_container.mouse_filter = Control.MOUSE_FILTER_PASS
+		result.mouse_filter = Control.MOUSE_FILTER_PASS
 		padding_container.add_child(result)
 		result = padding_container
 
@@ -716,6 +740,8 @@ func _wrap_with_margin_padding(control: Control, style: Dictionary) -> Control:
 			GmlStyles.apply_border_to_stylebox(style_box, style)
 
 		panel.add_theme_stylebox_override("panel", style_box)
+		# Set mouse_filter on inner content to pass events to panel for hover detection
+		result.mouse_filter = Control.MOUSE_FILTER_PASS
 		panel.add_child(result)
 		result = panel
 

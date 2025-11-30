@@ -182,22 +182,25 @@ static func _setup_button_transitions(button: Button, style: Dictionary, default
 		button.add_theme_color_override("font_pressed_color", style["color"])
 		button.add_theme_color_override("font_focus_color", style["color"])
 
-	# Store stylebox properties for transition manager
-	var stylebox_props := {}
-	if style.has("border-radius"):
-		stylebox_props["corner_radius"] = style["border-radius"]
-	if style.has("border-width"):
-		stylebox_props["border_width"] = style["border-width"]
-	if style.has("border-color"):
-		stylebox_props["border_color"] = style["border-color"]
-	button.set_meta("_stylebox_props", stylebox_props)
-
 	# Build complete style dictionaries for transitions
 	var base_style_complete := style.duplicate()
 	base_style_complete.erase("_hover")
 	base_style_complete.erase("_active")
 	base_style_complete.erase("_focus")
 	base_style_complete.erase("_disabled")
+
+	# Normalize border properties - extract border-color from border shorthand
+	_normalize_border_properties(base_style_complete)
+
+	# Store stylebox properties for transition manager (after normalization)
+	var stylebox_props := {}
+	if base_style_complete.has("border-radius"):
+		stylebox_props["corner_radius"] = base_style_complete["border-radius"]
+	if base_style_complete.has("border-width"):
+		stylebox_props["border_width"] = base_style_complete["border-width"]
+	if base_style_complete.has("border-color"):
+		stylebox_props["border_color"] = base_style_complete["border-color"]
+	button.set_meta("_stylebox_props", stylebox_props)
 
 	# Merge base with pseudo-class for complete target styles
 	var hover_complete := base_style_complete.duplicate()
@@ -650,3 +653,16 @@ static func _wrap_with_button_margin(button: Control, style: Dictionary) -> Cont
 	margin_container.add_child(button)
 
 	return margin_container
+
+
+## Normalize border properties - extract border-color, border-width from border shorthand.
+## This ensures transitions can find the individual properties.
+static func _normalize_border_properties(style: Dictionary) -> void:
+	if style.has("border") and style["border"] is Dictionary:
+		var border_dict: Dictionary = style["border"]
+		# Extract border-color if not already set
+		if not style.has("border-color") and border_dict.has("color"):
+			style["border-color"] = border_dict["color"]
+		# Extract border-width if not already set
+		if not style.has("border-width") and border_dict.has("width"):
+			style["border-width"] = border_dict["width"]

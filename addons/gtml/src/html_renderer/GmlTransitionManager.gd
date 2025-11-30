@@ -198,8 +198,14 @@ func _track_value_during_tween(control: Control, property: String, from_value, t
 func _update_control_background(control: Control, color: Color) -> void:
 	var stylebox: StyleBoxFlat
 
-	# Try to get existing StyleBox
+	# Try to get existing StyleBox based on control type
 	if control is Button:
+		if control.has_theme_stylebox_override("normal"):
+			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	elif control is LineEdit:
+		if control.has_theme_stylebox_override("normal"):
+			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	elif control is TextEdit:
 		if control.has_theme_stylebox_override("normal"):
 			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
 	elif control is PanelContainer:
@@ -231,9 +237,18 @@ func _update_control_background(control: Control, color: Color) -> void:
 
 	stylebox.bg_color = color
 
-	# Apply to appropriate override
+	# Apply to appropriate override - for buttons, update ALL states
 	if control is Button:
 		control.add_theme_stylebox_override("normal", stylebox)
+		control.add_theme_stylebox_override("hover", stylebox.duplicate())
+		control.add_theme_stylebox_override("pressed", stylebox.duplicate())
+		control.add_theme_stylebox_override("focus", stylebox.duplicate())
+	elif control is LineEdit:
+		control.add_theme_stylebox_override("normal", stylebox)
+		control.add_theme_stylebox_override("focus", stylebox.duplicate())
+	elif control is TextEdit:
+		control.add_theme_stylebox_override("normal", stylebox)
+		control.add_theme_stylebox_override("focus", stylebox.duplicate())
 	elif control is PanelContainer:
 		control.add_theme_stylebox_override("panel", stylebox)
 	else:
@@ -256,8 +271,14 @@ func _update_control_text_color(control: Control, color: Color) -> void:
 func _update_control_border_color(control: Control, color: Color) -> void:
 	var stylebox: StyleBoxFlat
 
-	# Try to get existing StyleBox
+	# Try to get existing StyleBox based on control type
 	if control is Button:
+		if control.has_theme_stylebox_override("normal"):
+			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	elif control is LineEdit:
+		if control.has_theme_stylebox_override("normal"):
+			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	elif control is TextEdit:
 		if control.has_theme_stylebox_override("normal"):
 			stylebox = control.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
 	elif control.has_theme_stylebox_override("panel"):
@@ -266,8 +287,18 @@ func _update_control_border_color(control: Control, color: Color) -> void:
 	if stylebox:
 		stylebox.border_color = color
 
+		# Apply to appropriate override - for buttons, update ALL states
 		if control is Button:
 			control.add_theme_stylebox_override("normal", stylebox)
+			control.add_theme_stylebox_override("hover", stylebox.duplicate())
+			control.add_theme_stylebox_override("pressed", stylebox.duplicate())
+			control.add_theme_stylebox_override("focus", stylebox.duplicate())
+		elif control is LineEdit:
+			control.add_theme_stylebox_override("normal", stylebox)
+			control.add_theme_stylebox_override("focus", stylebox.duplicate())
+		elif control is TextEdit:
+			control.add_theme_stylebox_override("normal", stylebox)
+			control.add_theme_stylebox_override("focus", stylebox.duplicate())
 		else:
 			control.add_theme_stylebox_override("panel", stylebox)
 
