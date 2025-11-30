@@ -141,3 +141,27 @@ button {
 .btn-danger:hover {
     background-color: #aa2233;
 }
+
+/* Phase 2: Flexbox Enhancements */
+
+/* Flex Wrap */
+.wrap-container {
+    flex-wrap: wrap;
+    max-width: 280px;
+}
+
+/* Flex Order */
+.order-1 { order: 1; background-color: #22aa66; }
+.order-2 { order: 2; background-color: #ddaa22; color: #1a1a1a; }
+.order-3 { order: 3; background-color: #cc3344; }
+
+/* Align Self */
+.self-start { align-self: flex-start; }
+.self-center { align-self: center; }
+.self-end { align-self: flex-end; }
+
+/* Row & Column Gap */
+.gap-demo {
+    row-gap: 8px;
+    column-gap: 24px;
+}
